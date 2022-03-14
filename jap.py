@@ -157,19 +157,27 @@ class Jap:
                 parse_mode = 1
                 continue
             # 127 is backspace
-            elif key == 127 and input_buffer:
+            elif key == 127:
+                if not input_buffer:
+                    continue
                 if input_buffer[-1] == TAB:
                     parse_mode -= 1
                 if parse_mode < 1:
                     parse_mode = 1
                 input_buffer = input_buffer[:-1]
             # 23 is ctrl+w, 8 is ctrl+backspace
-            elif (key == 23 or key == 8) and input_buffer:
-                _buffer = input_buffer.split(TAB)[:-1]
+            elif (key == 23 or key == 8): 
+                if not input_buffer:
+                    continue
+                input_list =  input_buffer.split(TAB)
+                last_input = input_list[-1]
+                _buffer = input_list[:-1]
                 parse_mode = len(_buffer)
                 if parse_mode == 0:
                     parse_mode = 1
                 input_buffer = TAB.join(_buffer)
+                if last_input != '\t' and last_input:
+                    input_buffer += '\t' 
             # 9 is tab
             elif key == 9 and input_buffer:
                 if parse_mode == 1:

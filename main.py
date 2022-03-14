@@ -11,7 +11,8 @@ def main(stdscr, argv):
     output_file = "vocab_checkpoint.csv"
     is_repeat = False
     is_save_checkpoint = False
-    options = "rcf:"
+    is_load_checkpoint = False
+    options = "rclf:"
 
     curses.init_pair(1, curses.COLOR_BLUE, curses.COLOR_YELLOW)
     curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
@@ -28,11 +29,13 @@ def main(stdscr, argv):
         elif opt in ("-r"):
             is_repeat = True
         elif opt in ("-c"):
-            # if arg:
-            #     output_file = arg
             is_save_checkpoint = True
+        elif opt in ("-l"):
+            is_load_checkpoint = True
 
     options_json = {"is_repeat": is_repeat}
+    if is_load_checkpoint:
+        input_file = 'vocab_checkpoint.csv'
     try:
         jap_win = Jap(stdscr, input_file, options_json)
         jap_win.run()
