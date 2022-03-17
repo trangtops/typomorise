@@ -31,6 +31,18 @@ Save a progress to vocab_checkpoint.csv when user exit program with ctrl+c.
 `-r`
 Each word that user finished typing will be put back to the end of vocab list
 
+`-l`
+Load from vocab_checkpoint.csv
+
+`-t`
+A test mode that can save correct and wrong answer to csv by compare between kanji of user input and kanji of input csv
+
+`-s`
+A shuffle mode that will shuffle a whole vocabs
+
+`-p [number of word per set]`
+A phase mode. This will divide vocabs into set which will repeat that set untill user decide to go next set
+
 ### How to play
 - Interface will consist of 2 windows. The upper window is for typing input, and below one shows list of vocabularies.
 - The first row of vocabulary list is the word you have to typing.
@@ -42,10 +54,13 @@ Each word that user finished typing will be put back to the end of vocab list
 
 ![type_correct](https://user-images.githubusercontent.com/16998540/158052179-b0fa97d6-e373-499b-9e90-a3c4402ecc57.gif)
 
-- You can press backspace to delete a character and go back to previous word. Alternatively, you can press ctrl+w or ctrl+backspace to delete a whole word
-
+- You can press backspace to delete a character and go back to previous word. Alternatively, you can press ctrl+backspace to delete a whole word
 
 ![type_wrong](https://user-images.githubusercontent.com/16998540/158052257-3ba148aa-fae2-4e25-805c-7c62e335ba2c.gif)
+
+- You can also press ctrl+w to hide kanji colume, ctrl+e to hide reading, and ctrl+r to hide english colume
+
+![hiding](https://user-images.githubusercontent.com/16998540/158787803-f5050439-337e-4738-a6ef-7c65e9813334.gif)
 
 
 
