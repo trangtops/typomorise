@@ -2,68 +2,33 @@ from asyncio.log import logger
 import curses
 from curses.textpad import rectangle
 import jap_parser
-import logging
-
-"""
-logger = logging.getLogger('simple_example')
-logger.setLevel(logging.DEBUG)
-
-# create console handler and set level to debug
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-logger.addHandler(ch)
-"""
-
-
-class Logger:
-    def __init__(self, h, w, y, x, stdscr):
-        self.logger_win = self.create_logger_window(h, w, y, x, stdscr)
-        self.log_list = []
-
-    def add_log(self, log_string):
-        scr_h, scr_w = self.logger_win.getmaxyx()
-        log_max = int(scr_h / 2)
-
-        self.log_list.append(log_string)
-        if len(self.log_list) > log_max:
-            self.log_list.pop(0)
-        elif len(self.log_list) < log_max:
-            log_max = len(self.log_list)
-
-        for i in range(log_max):
-            self.logger_win.addstr((i * 2) + 1, 3, self.log_list[i])
-        self.logger_win.refresh()
-
-    def create_logger_window(self, h, w, y, x, stdscr):
-        logger_win = curses.newwin(h - 2, w - 2, y + 1, x + 1)
-        rectangle(
-            stdscr,
-            y,
-            x,
-            y + h,
-            x + w,
-        )
-
-        logger_win.refresh()
-        return logger_win
+import thai_parser
 
 
 MARGIN_LEFT, MARGIN_RIGHT, MARGIN_HEAD, MARGIN_BOTTOM = 1, 1, 1, 1
 
 
 class Jap:
-    def __init__(self, stdscr, text_file, options_json={}):
+    def __init__(self, stdscr, vocab_list, options_json={}):
         self.stdscr = stdscr
+        self.splitter = "/"
+        self.TAB = "\t"
+        self.vocab_list = []
+        self.is_test = options_json.get("is_test", False)
+        self.is_shuffle = options_json.get("is_shuffle", False)
         self.input_win, self.vocab_win = self.create_interface()
-        self.vocab_list = self.read_vocab_file(text_file)
+        self.load_vocab_list(vocab_list)
+        self.is_kanji = True
+        self.is_yomi = True
+        self.is_meaning = True
+        self.correct_ans = []
+        self.wrong_ans = []
         self.refresh_vocab()
 
         self.is_repeat = options_json.get("is_repeat", False)
 
         scr_y, scr_x = self.vocab_win.getbegyx()
         scr_h, scr_w = self.vocab_win.getmaxyx()
-        # self.logger = Logger(int(scr_h/2), int(scr_w/2), scr_y+1, int(scr_w/2), self.stdscr)
-
         self.stdscr.noutrefresh()
         self.input_win.noutrefresh()
         self.vocab_win.noutrefresh()
@@ -109,34 +74,59 @@ class Jap:
         vocab_win.noutrefresh()
         return input_win, vocab_win
 
-    def pop_vocab(self):
+    def pop_vocab(self, ans):
+        kanji = ans.split(self.TAB)[0]
         vocab = self.vocab_list.pop(0)
+        if self.is_test:
+            if kanji != vocab.split(self.splitter)[0]:
+                self.wrong_ans.append(vocab)
+            else:
+                self.correct_ans.append(vocab)
+
         if self.is_repeat:
             self.vocab_list.append(vocab)
 
     def refresh_vocab(self):
         scr_h, scr_w = self.vocab_win.getmaxyx()
+        self.vocab_win.erase()
         vocab_num = int(scr_h / 2)
         if len(self.vocab_list) < vocab_num:
             vocab_num = len(self.vocab_list)
 
         for i in range(vocab_num):
-            self.vocab_win.addstr(i * 2, 1, self.vocab_list[i])
-        self.vocab_win.noutrefresh()
+            vocab = self.vocab_list[i].split(self.splitter)
+            kanji = vocab[0] if self.is_kanji else ""
+            meaning = vocab[-1] if self.is_meaning else ""
+            if len(vocab) == 2:
+                yomi = ""
+            else:
+                yomi = vocab[1] if self.is_yomi else ""
+            vocab = "{:<10}{:<10}{:>10}".format(kanji, meaning, yomi)
+            self.vocab_win.addstr(i * 2, 1, vocab)
+            self.vocab_win.noutrefresh()
 
-    def read_vocab_file(self, vocab_file):
-        with open(vocab_file, "r") as f:
-            return f.read().splitlines()
+    def load_vocab_list(self, vocab_list):
+        # remove invalid vocab
+        self.vocab_list = vocab_list
+        for i in range(len(self.vocab_list)):
+            vocab = self.vocab_list[i]
+            vocab.replace(" ", "").replace("\t", "")
+            if not vocab:
+                self.vocab_list.pop(i)
+        if self.is_shuffle:
+            import random
+
+            random.shuffle(self.vocab_list)
 
     def write_log(self, log_string):
         with open("log.txt", "a") as f:
-            f.write(f"{log_string}")
+            f.write(log_string)
 
     def run(self):
         start_cursor_x = MARGIN_LEFT + 1
-        vocab_label = self.vocab_list[0].split("\t")
+        vocab_label = self.vocab_list[0].split(self.splitter)
         # self.logger.add_log(''.join(vocab_label))
-        TAB = "\t"
+        self.TAB = "\t"
         input_buffer = ""
         parse_mode = 1
         input_list = []
@@ -147,37 +137,36 @@ class Jap:
             if key == 10:
                 self.input_win.erase()
                 self.vocab_win.erase()
+                self.pop_vocab(input_buffer)
                 input_buffer = ""
-                self.pop_vocab()
-                if not self.vocab_list:
-                    curses.endwin()
-
+                if len(self.vocab_list) == 0:
+                    break
                 self.refresh_vocab()
-                vocab_label = self.vocab_list[0].split("\t")
+                vocab_label = self.vocab_list[0].split(self.splitter)
                 parse_mode = 1
                 continue
             # 127 is backspace
             elif key == 127:
                 if not input_buffer:
                     continue
-                if input_buffer[-1] == TAB:
+                if input_buffer[-1] == self.TAB:
                     parse_mode -= 1
                 if parse_mode < 1:
                     parse_mode = 1
                 input_buffer = input_buffer[:-1]
             # 23 is ctrl+w, 8 is ctrl+backspace
-            elif (key == 23 or key == 8): 
+            elif key == 8:
                 if not input_buffer:
                     continue
-                input_list =  input_buffer.split(TAB)
-                last_input = input_list[-1]
+                input_list = input_buffer.split(self.TAB)
                 _buffer = input_list[:-1]
                 parse_mode = len(_buffer)
+                input_buffer = self.TAB.join(_buffer)
+                if parse_mode > 0 and input_list[-1]:
+                    input_buffer += self.TAB
+                    parse_mode += 1
                 if parse_mode == 0:
                     parse_mode = 1
-                input_buffer = TAB.join(_buffer)
-                if last_input != '\t' and last_input:
-                    input_buffer += '\t' 
             # 9 is tab
             elif key == 9 and input_buffer:
                 if parse_mode == 1:
@@ -186,8 +175,23 @@ class Jap:
                 elif parse_mode == 2:
                     pass
                 parse_mode += 1
-                input_buffer += TAB
-            elif parse_mode > 2:
+                input_buffer += self.TAB
+            # 23 is ctrl+w
+            elif key == 23:
+                self.is_kanji = False if self.is_kanji else True
+                self.refresh_vocab()
+            # 5 is ctrl+e
+            elif key == 5:
+                self.is_yomi = False if self.is_yomi else True
+                self.refresh_vocab()
+            # 18 os ctrl+r
+            elif key == 18:
+                self.is_meaning = False if self.is_meaning else True
+                self.refresh_vocab()
+            elif parse_mode > 1:
+                """if ord(vocab_label[-1][0]) not in range(65, 123):
+                    input_buffer += thai_parser.to_thai(chr(key))
+                else:"""
                 input_buffer += chr(key)
             else:
                 input_buffer += chr(key)
@@ -195,5 +199,4 @@ class Jap:
             self.input_win.erase()
             self.input_win.addstr(input_buffer)
             # self.input_win.addstr(str(key))
-            self.stdscr.refresh()
             curses.doupdate()
