@@ -2,7 +2,7 @@ from asyncio.log import logger
 import curses
 from curses.textpad import rectangle
 import jap_parser
-import thai_parser
+# import thai_parser
 
 
 MARGIN_LEFT, MARGIN_RIGHT, MARGIN_HEAD, MARGIN_BOTTOM = 1, 1, 1, 1
