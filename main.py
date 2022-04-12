@@ -2,6 +2,7 @@ import curses
 import sys, getopt
 from curses.textpad import rectangle
 from jap import Jap
+import random
 import os
 import traceback
 
@@ -23,7 +24,7 @@ def get_traceback(e):
 
 def is_next_phase(stdscr):
     scr_h, scr_w = stdscr.getmaxyx()
-    stdscr.addstr(scr_h - 3, 3, "next?")
+    stdscr.addstr(scr_h - 3, 3, "Move to next phase?(y or n)")
     key = stdscr.getkey()
     while True:
         if key == "y":
