@@ -2,7 +2,7 @@ from asyncio.log import logger
 import curses
 from curses.textpad import rectangle
 import jap_parser
-# import thai_parser
+import thai_parser
 
 
 MARGIN_LEFT, MARGIN_RIGHT, MARGIN_HEAD, MARGIN_BOTTOM = 1, 1, 1, 1
@@ -90,17 +90,25 @@ class Jap:
         scr_h, scr_w = self.vocab_win.getmaxyx()
         self.vocab_win.erase()
         vocab_num = int(scr_h / 2)
+        meaning_lang = ['th', 'en', 'jp']
         if len(self.vocab_list) < vocab_num:
             vocab_num = len(self.vocab_list)
 
         for i in range(vocab_num):
             vocab = self.vocab_list[i].split(self.splitter)
+            vocab_len = len(vocab)
             kanji = vocab[0] if self.is_kanji else ""
-            meaning = vocab[-1] if self.is_meaning else ""
+            if vocab[-1] in meaning_lang:
+                meaning = vocab[vocab_len - 2] if self.is_meaning else ""
+            else:
+                meaning = vocab[vocab_len-1] if self.is_meaning else ""
+
+            '''
             if len(vocab) == 2:
                 yomi = ""
             else:
-                yomi = vocab[1] if self.is_yomi else ""
+            '''
+            yomi = vocab[1] if self.is_yomi else ""
             vocab = "{:<10}{:<10}{:>10}".format(kanji, meaning, yomi)
             self.vocab_win.addstr(i * 2, 1, vocab)
             self.vocab_win.noutrefresh()
@@ -181,18 +189,24 @@ class Jap:
                 self.is_kanji = False if self.is_kanji else True
                 self.refresh_vocab()
             # 5 is ctrl+e
-            elif key == 5:
+            elif key == 18:
                 self.is_yomi = False if self.is_yomi else True
                 self.refresh_vocab()
             # 18 os ctrl+r
-            elif key == 18:
+            elif key == 5:
                 self.is_meaning = False if self.is_meaning else True
                 self.refresh_vocab()
             elif parse_mode > 1:
                 """if ord(vocab_label[-1][0]) not in range(65, 123):
                     input_buffer += thai_parser.to_thai(chr(key))
                 else:"""
-                input_buffer += chr(key)
+                if vocab_label[-1] == 'th':
+                    input_buffer += thai_parser.to_thai(chr(key))
+                elif vocab_label[-1] == 'jp':
+                    input_buffer += chr(key)
+                    input_buffer = jap_parser.to_hiragana_converter(input_buffer)
+                else:
+                    input_buffer += chr(key)
             else:
                 input_buffer += chr(key)
                 input_buffer = jap_parser.to_hiragana_converter(input_buffer)

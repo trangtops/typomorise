@@ -48,6 +48,7 @@ hiragana_list = [
 ]
 
 romanji_to_hiragana = {
+    ",": "、",
     "a": "あ",
     "i": "い",
     "u": "う",
@@ -76,6 +77,7 @@ romanji_to_hiragana = {
     "tta": "った",
     "chi": "ち",
     "ti": "ち",
+    "cchi": "っち",
     "tti": "っち",
     "tu": "つ",
     "tsu": "つ",
